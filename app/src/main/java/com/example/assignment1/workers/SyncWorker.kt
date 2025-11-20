@@ -186,8 +186,26 @@ class SyncWorker(
                 object : TypeToken<Map<String, Any>>() {}.type
             )
             
-            // Will implement with post upload migration
-            false
+            val imageUri = Uri.parse(data["imageUri"] as String)
+            val caption = data["caption"] as String
+            
+            // Create temp file from URI
+            val inputStream = applicationContext.contentResolver.openInputStream(imageUri)
+            val tempFile = File(applicationContext.cacheDir, "post_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(tempFile).use { output ->
+                inputStream?.copyTo(output)
+            }
+            inputStream?.close()
+            
+            val apiService = ApiClient.getApiService(applicationContext)
+            val requestBody = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData("image", tempFile.name, requestBody)
+            val captionBody = caption.toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            val response = apiService.createPost(imagePart, captionBody)
+            tempFile.delete()
+            
+            response.isSuccessful && response.body()?.status == "success"
         } catch (e: Exception) {
             false
         }

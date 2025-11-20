@@ -63,4 +63,36 @@ class UserRepository
 
         return (bool) $stmt->fetchColumn();
     }
+
+    public function search(string $query, int $limit = 50): array
+    {
+        $stmt = $this->pdo()->prepare(
+            'SELECT id, username, email, profile_image FROM users 
+             WHERE username LIKE :query OR email LIKE :query 
+             LIMIT :limit'
+        );
+        $stmt->bindValue(':query', '%' . $query . '%', PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function updateProfileImage(int $userId, string $imageUrl): void
+    {
+        $stmt = $this->pdo()->prepare('UPDATE users SET profile_image = :image WHERE id = :id');
+        $stmt->execute([
+            'image' => $imageUrl,
+            'id' => $userId,
+        ]);
+    }
+
+    public function updateCoverImage(int $userId, string $imageUrl): void
+    {
+        $stmt = $this->pdo()->prepare('UPDATE users SET cover_image = :image WHERE id = :id');
+        $stmt->execute([
+            'image' => $imageUrl,
+            'id' => $userId,
+        ]);
+    }
 }

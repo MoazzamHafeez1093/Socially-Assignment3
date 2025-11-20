@@ -9,6 +9,8 @@ use Socially\Controllers\StoryController;
 use Socially\Controllers\PostController;
 use Socially\Controllers\FollowController;
 use Socially\Controllers\MessageController;
+use Socially\Controllers\ProfileController;
+use Socially\Controllers\SearchController;
 use Socially\Helpers\MediaUploader;
 use Socially\Repositories\SessionRepository;
 use Socially\Repositories\UserRepository;
@@ -90,6 +92,19 @@ $container->set(MessageController::class, function ($c) {
     return new MessageController(
         $c->get(MessageRepository::class),
         $c->get(MediaUploader::class)
+    );
+});
+
+$container->set(ProfileController::class, function ($c) {
+    return new ProfileController(
+        $c->get(UserRepository::class),
+        $c->get(MediaUploader::class)
+    );
+});
+
+$container->set(SearchController::class, function ($c) {
+    return new SearchController(
+        $c->get(UserRepository::class)
     );
 });
 

@@ -5,6 +5,8 @@ use Socially\Controllers\StoryController;
 use Socially\Controllers\PostController;
 use Socially\Controllers\FollowController;
 use Socially\Controllers\MessageController;
+use Socially\Controllers\ProfileController;
+use Socially\Controllers\SearchController;
 use Socially\Middleware\AuthMiddleware;
 use Socially\Repositories\SessionRepository;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -79,4 +81,10 @@ $app->group('/api', function (RouteCollectorProxy $group) {
     $group->put('/messages/{id}', [MessageController::class, 'update']);
     $group->delete('/messages/{id}', [MessageController::class, 'destroy']);
     $group->post('/messages/{id}/read', [MessageController::class, 'markRead']);
+
+    // Profile & Search
+    $group->get('/users/{id}', [ProfileController::class, 'show']);
+    $group->post('/profile/image', [ProfileController::class, 'updateProfileImage']);
+    $group->post('/profile/cover', [ProfileController::class, 'updateCoverImage']);
+    $group->get('/search/users', [SearchController::class, 'users']);
 })->add($authMiddleware);

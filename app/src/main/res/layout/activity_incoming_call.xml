@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/red_brown">
+
+    <!-- Status bar -->
+    <ImageView
+        android:id="@+id/statusBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:scaleType="fitXY"
+        android:src="@drawable/status_bar"/>
+
+    <!-- Call Type Text -->
+    <TextView
+        android:id="@+id/callTypeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Incoming Video Call"
+        android:textSize="20sp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/statusBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="60dp"/>
+
+    <!-- Caller Image -->
+    <ImageView
+        android:id="@+id/callerImageView"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:background="@drawable/rounded_button_more_more"
+        android:src="@drawable/omar_sheikh"
+        android:scaleType="centerCrop"
+        android:clipToOutline="true"
+        app:layout_constraintTop_toBottomOf="@id/callTypeText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.3"
+        android:layout_marginTop="40dp"/>
+
+    <!-- Caller Name -->
+    <TextView
+        android:id="@+id/callerNameText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="John Doe"
+        android:textSize="32sp"
+        android:textColor="@color/white"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/callerImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp"/>
+
+    <!-- Calling text -->
+    <TextView
+        android:id="@+id/callingStatusText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="is calling you..."
+        android:textSize="18sp"
+        android:textColor="@color/white"
+        app:layout_constraintTop_toBottomOf="@id/callerNameText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Button Container -->
+    <LinearLayout
+        android:id="@+id/buttonContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="80dp">
+
+        <!-- Decline Button -->
+        <ImageButton
+            android:id="@+id/declineCallBtn"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/end_call_button_background"
+            android:src="@drawable/end_call"
+            android:scaleType="fitXY"
+            android:layout_margin="24dp"
+            android:contentDescription="Decline call"/>
+
+        <!-- Accept Button -->
+        <ImageButton
+            android:id="@+id/acceptCallBtn"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:background="@drawable/rounded_button_more"
+            android:backgroundTint="@color/green"
+            android:src="@android:drawable/ic_menu_call"
+            android:scaleType="centerInside"
+            android:padding="16dp"
+            android:layout_margin="24dp"
+            android:contentDescription="Accept call"/>
+
+    </LinearLayout>
+
+    <!-- Swipe up hint (optional) -->
+    <TextView
+        android:id="@+id/swipeHintText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tap to answer"
+        android:textSize="14sp"
+        android:textColor="@color/white"
+        android:alpha="0.7"
+        app:layout_constraintTop_toBottomOf="@id/callingStatusText"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="40dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

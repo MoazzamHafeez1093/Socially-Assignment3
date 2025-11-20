@@ -1,0 +1,595 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <ScrollView xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/white"
+        android:layout_marginBottom="70dp"
+        xmlns:android="http://schemas.android.com/apk/res/android">
+
+        <!-- Main container using ConstraintLayout -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:context=".HomeScreen">
+
+            <!-- Mock status bar image -->
+            <ImageView
+                android:id="@+id/group_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:scaleType="fitXY"
+                android:src="@drawable/status_bar"/>
+
+            <!-- Top bar with logo and buttons -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/homeTop"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toBottomOf="@id/group_1"
+                android:layout_margin="10dp">
+
+                <!-- Camera icon on the left -->
+                <ImageView
+                    android:id="@+id/cameraLogo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    android:src="@drawable/camerabrown"/>
+
+                <!-- App logo in the center -->
+                <ImageView
+                    android:id="@+id/Logo"
+                    android:layout_width="120dp"
+                    android:layout_height="40dp"
+                    app:layout_constraintLeft_toLeftOf="parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:src="@drawable/socially_logo_white"
+                    android:scaleType="fitCenter"/>
+
+                <!-- Share button on the right -->
+                <ImageButton
+                    android:id="@+id/shareButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    app:layout_constraintRight_toRightOf="parent"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/share_icon"
+                    android:layout_marginTop="14dp"/>
+
+                <!-- Notification button left of share -->
+                <ImageButton
+                    android:id="@+id/notificationButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    app:layout_constraintRight_toLeftOf="@id/shareButton"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/notification_icon"/>
+
+                <!-- Horizontal scroll for stories -->
+                <HorizontalScrollView
+                    android:id="@+id/storyScrollView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="25dp"
+                    android:layout_marginBottom="25dp"
+                    android:scrollbars="none"
+                    app:layout_constraintTop_toBottomOf="@id/cameraLogo">
+
+                    <!-- Row of story items -->
+                    <LinearLayout
+                        android:id="@+id/storiesLinearLayout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:id="@+id/story1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:id="@+id/profileImageView"
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    android:clipToOutline="true"/>
+                                
+                                <!-- Add Story Plus Button -->
+                                <ImageButton
+                                    android:id="@+id/addStoryButton"
+                                    android:layout_width="22dp"
+                                    android:layout_height="22dp"
+                                    android:layout_gravity="bottom|end"
+                                    android:layout_marginEnd="8dp"
+                                    android:layout_marginBottom="8dp"
+                                    android:src="@drawable/tab_3_plus"
+                                    android:background="@drawable/circle"
+                                    android:backgroundTint="@color/brown"
+                                    android:scaleType="centerInside"
+                                    android:padding="2dp"
+                                    android:elevation="4dp"
+                                    android:clickable="true"
+                                    android:focusable="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:id="@+id/usernameTextView"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+
+
+
+                        <LinearLayout
+                            android:id="@+id/story2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_default_profile"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clipToOutline="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Ayesha"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+
+
+                        <LinearLayout
+                            android:id="@+id/story3"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/danny_rob"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clipToOutline="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Danny"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/story4"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:id="@+id/UserStoryView"
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/sofia_martinez"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clipToOutline="true"
+                                    android:clickable="true"
+                                    android:focusable="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Sofia"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/story5"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/hannah_lee"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clipToOutline="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Hannah"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/story6"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="15dp">
+
+                            <!-- Story (ring + profile pic) -->
+                            <FrameLayout
+                                android:layout_width="90dp"
+                                android:layout_height="90dp">
+
+                                <!-- Story ring -->
+                                <ImageView
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent"
+                                    android:src="@drawable/circlestory"
+                                    android:scaleType="fitXY" />
+
+                                <!-- Profile picture -->
+                                <ImageView
+                                    android:layout_width="82dp"
+                                    android:layout_height="82dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/omar_sheikh"
+                                    android:scaleType="centerCrop"
+                                    android:background="@drawable/circlestory"
+                                    android:clipToOutline="true"/>
+                            </FrameLayout>
+
+                            <!-- Username below story -->
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Omar"
+                                android:textColor="@color/black"
+                                android:textSize="12sp"
+                                android:ellipsize="end"
+                                android:singleLine="true"
+                                android:gravity="center"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- Static hardcoded post (kept as requested) -->
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/staticPostCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toBottomOf="@id/storyScrollView"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <!-- Identification section -->
+                        <LinearLayout
+                            android:id="@+id/identification"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="60dp">
+
+                            <ImageView
+                                android:layout_width="50dp"
+                                android:layout_height="50dp"
+                                android:background="@drawable/circle"
+                                android:src="@drawable/danny_rob"
+                                android:clipToOutline="true"/>
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:text="danny_rob\nTokyo, Japan"
+                                android:layout_marginLeft="5dp"
+                                android:gravity="center_vertical"/>
+
+                            <ImageButton
+                                android:layout_width="wrap_content"
+                                android:layout_height="match_parent"
+                                android:src="@drawable/options"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:layout_marginLeft="210dp"/>
+                        </LinearLayout>
+
+                        <!-- Image section -->
+                        <ImageView
+                            android:id="@+id/tokyoImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="500dp"
+                            android:layout_marginTop="8dp"
+                            android:adjustViewBounds="true"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/sample_tokyo"/>
+
+                        <!-- Action buttons row (Heart, Comment, Share, Save) -->
+                        <LinearLayout
+                            android:id="@+id/actionButtons"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="8dp">
+
+                            <!-- Heart (Like) -->
+                            <ImageButton
+                                android:id="@+id/likeButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/like"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="Like"
+                                android:layout_marginTop="5dp"/>
+
+                            <!-- Comment -->
+                            <ImageButton
+                                android:id="@+id/commentButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:src="@drawable/comment"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="Comment"/>
+
+                            <!-- Share -->
+                            <ImageButton
+                                android:id="@+id/sharePostButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:src="@drawable/share_small"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="Share"/>
+
+                            <!-- Spacer pushes Save icon to the right -->
+                            <View
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"/>
+
+                            <!-- Save -->
+                            <ImageButton
+                                android:id="@+id/saveButton"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:src="@drawable/save"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:contentDescription="Save"/>
+                        </LinearLayout>
+
+                        <!-- Post interaction row (likes, username, caption) -->
+                        <LinearLayout
+                            android:id="@+id/postInteraction"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_margin="10dp">
+
+                            <!-- Likes text -->
+                            <TextView
+                                android:id="@+id/likesText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Liked by craig_love and 44,686 others"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/black"
+                                android:layout_marginTop="5dp"/>
+
+                            <!-- Caption: username + text -->
+                            <TextView
+                                android:id="@+id/captionText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="danny_rob The game in Japan was amazing and I want to share some photos"
+                                android:textColor="@android:color/black"
+                                android:layout_marginTop="3dp"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Posts RecyclerView -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/postsRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    app:layout_constraintTop_toBottomOf="@id/staticPostCard"
+                    android:layout_marginTop="8dp" />
+                
+
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+    <!-- Bottom Navigation Bar, Always fixed at the bottom -->
+    <!-- Bottom Navigation Bar, Always fixed at the bottom -->
+    <LinearLayout
+        android:id="@+id/navigation_bar"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:src="@drawable/feed"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:weightSum="50"
+        android:orientation="horizontal"
+        android:scaleType="centerCrop"
+        android:background="@color/white">
+        <ImageButton
+            android:id="@+id/tab_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_1_filled"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_2_search"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_2_search"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_3_plus"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_3_plus"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_4_notification"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_4_notification"
+            android:background="@color/white"/>
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/tab_5"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/circle_profile_right_bottom"
+                android:scaleType="centerCrop"
+                android:clipToOutline="true"
+                android:layout_gravity="center"/>
+        </FrameLayout>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

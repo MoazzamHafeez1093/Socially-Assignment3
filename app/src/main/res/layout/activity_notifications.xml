@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white">
+
+    <!-- Mock status bar image -->
+    <ImageView
+        android:id="@+id/group_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:src="@drawable/status_bar"
+        android:scaleType="fitXY"/>
+
+
+    <!-- Search Bar Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="10dp"
+        android:layout_margin="15dp"
+        android:backgroundTint="@color/grey">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Following"
+            android:textColor="@color/brown"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:layout_marginStart="8dp"
+            android:gravity="center"/>
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="You"
+            android:textColor="@color/brown"
+            android:textSize="30sp"
+            android:layout_marginStart="8dp"
+            android:gravity="center"/>
+
+    </LinearLayout>
+
+    <!-- Messages Section -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp">
+
+            <!-- Message Item 1: Ayesha -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:gravity="start">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_gravity="center_vertical">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_default_profile"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/circle"
+                        android:clipToOutline="true"/>
+                </FrameLayout>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ayesha"
+                        android:textStyle="bold"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" liked 3 posts."
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="· now"
+                        android:textSize="12sp"
+                        android:textColor="@color/dark_grey"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Message Item 2: Danny -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:gravity="start">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_gravity="center_vertical">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/danny_rob"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/circle"
+                        android:clipToOutline="true"/>
+                </FrameLayout>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Danny"
+                        android:textStyle="bold"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" started following Omar."
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="· 3h"
+                        android:textSize="12sp"
+                        android:textColor="@color/dark_grey"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Message Item 3: Omar -->
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:gravity="start">
+
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="10dp"
+                    android:layout_gravity="center_vertical">
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/omar_sheikh"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/circle"
+                        android:clipToOutline="true"/>
+                </FrameLayout>
+
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Omar"
+                        android:textStyle="bold"
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" liked Danny's post."
+                        android:textSize="14sp"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="11h"
+                        android:textSize="12sp"
+                        android:textColor="@color/dark_grey"/>
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Add more message items similarly -->
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Camera Button Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp">
+
+        <ImageButton
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/camerabrown"
+            android:background="@color/transparent"
+            android:contentDescription="Camera Button" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" Camera"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+    <!-- Bottom Navigation Bar, Always fixed at the bottom -->
+    <LinearLayout
+        android:id="@+id/navigation_bar"
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:src="@drawable/feed"
+        android:weightSum="50"
+        android:orientation="horizontal"
+        android:scaleType="centerCrop"
+        android:background="@color/white">
+        <ImageButton
+            android:id="@+id/tab_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_1"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_2_search"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_2_search"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_3_plus"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_3_plus"
+            android:background="@color/white"/>
+        <ImageButton
+            android:id="@+id/tab_4_notification_filled"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:src="@drawable/tab_4_notification_filled"
+            android:background="@color/white"/>
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="10"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/tab_5"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/circle_profile_right_bottom"
+                android:scaleType="centerCrop"
+                android:clipToOutline="true"
+                android:layout_gravity="center"/>
+        </FrameLayout>
+
+
+
+
+    </LinearLayout>
+
+</LinearLayout>

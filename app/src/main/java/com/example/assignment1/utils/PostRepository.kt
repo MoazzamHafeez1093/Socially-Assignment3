@@ -4,168 +4,236 @@ import android.content.Context
 import android.net.Uri
 import com.example.assignment1.models.Post
 import com.example.assignment1.models.Comment
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
+import com.example.assignment1.data.network.ApiClient
+import com.example.assignment1.data.prefs.SessionManager
+import com.example.assignment1.data.local.AppDatabase
+import com.example.assignment1.data.local.entities.PostEntity
+import com.example.assignment1.data.local.entities.PendingActionEntity
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
 
-class PostRepository {
-    private val auth = FirebaseAuth.getInstance()
-    private val db = FirebaseDatabase.getInstance().reference
+class PostRepository(private val context: Context) {
+    private val sessionManager = SessionManager(context)
+    private val database = AppDatabase.getInstance(context)
 
     fun createPost(context: Context, imageUri: Uri, caption: String, onComplete: (Boolean, String?) -> Unit) {
-        val uid = auth.currentUser?.uid ?: return onComplete(false, null)
-        val postId = db.child("posts").push().key ?: return onComplete(false, null)
-        
-        // Convert image to Base64
-        val base64Image = Base64Image.uriToBase64(context, imageUri)
-        if (base64Image == null) {
-            onComplete(false, null)
-            return
-        }
-        
-        val post = Post(
-            postId = postId,
-            userId = uid,
-            username = auth.currentUser?.displayName ?: "Unknown User",
-            userProfileImage = auth.currentUser?.photoUrl?.toString() ?: "",
-            imageUrl = base64Image, // Store Base64 string instead of URL
-            caption = caption,
-            timestamp = System.currentTimeMillis()
-        )
-        
-        db.child("posts").child(postId).setValue(post)
-            .addOnCompleteListener { task ->
-                onComplete(task.isSuccessful, if (task.isSuccessful) postId else null)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Create temp file from URI
+                val inputStream = context.contentResolver.openInputStream(imageUri)
+                val tempFile = File(context.cacheDir, "post_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(tempFile).use { output ->
+                    inputStream?.copyTo(output)
+                }
+                inputStream?.close()
+                
+                val apiService = ApiClient.getApiService(context)
+                val requestBody = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                val imagePart = MultipartBody.Part.createFormData("image", tempFile.name, requestBody)
+                val captionBody = caption.toRequestBody("text/plain".toMediaTypeOrNull())
+                
+                val response = apiService.createPost(imagePart, captionBody)
+                tempFile.delete()
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    val postId = response.body()?.data?.id?.toString()
+                    withContext(Dispatchers.Main) { onComplete(true, postId) }
+                } else {
+                    // Queue for offline upload
+                    queuePostUpload(imageUri.toString(), caption)
+                    withContext(Dispatchers.Main) { onComplete(true, null) }
+                }
+            } catch (e: Exception) {
+                // Queue for offline upload
+                queuePostUpload(imageUri.toString(), caption)
+                withContext(Dispatchers.Main) { onComplete(true, null) }
             }
+        }
+    }
+    
+    private fun queuePostUpload(imageUri: String, caption: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val postData = mapOf(
+                "imageUri" to imageUri,
+                "caption" to caption,
+                "timestamp" to System.currentTimeMillis()
+            )
+            
+            val pendingAction = PendingActionEntity(
+                actionType = "upload_post",
+                jsonData = Gson().toJson(postData),
+                retryCount = 0,
+                status = "pending"
+            )
+            
+            database.pendingActionDao().insertAction(pendingAction)
+        }
     }
 
     fun likePost(postId: String, onComplete: (Boolean) -> Unit) {
-        val uid = auth.currentUser?.uid ?: return onComplete(false)
-        
-        db.child("posts").child(postId).get().addOnSuccessListener { snapshot ->
-            val post = snapshot.getValue(Post::class.java) ?: return@addOnSuccessListener
-            
-            val updatedLikes = post.likes.toMutableList()
-            if (updatedLikes.contains(uid)) {
-                updatedLikes.remove(uid)
-            } else {
-                updatedLikes.add(uid)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                val response = apiService.likePost(postId.toInt())
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    withContext(Dispatchers.Main) { onComplete(true) }
+                } else {
+                    // Queue for offline
+                    queueLikePost(postId)
+                    withContext(Dispatchers.Main) { onComplete(true) }
+                }
+            } catch (e: Exception) {
+                // Queue for offline
+                queueLikePost(postId)
+                withContext(Dispatchers.Main) { onComplete(true) }
             }
-            
-            val updates = mapOf(
-                "likes" to updatedLikes,
-                "likeCount" to updatedLikes.size
+        }
+    }
+    
+    private fun queueLikePost(postId: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val likeData = mapOf(
+                "postId" to postId.toInt(),
+                "timestamp" to System.currentTimeMillis()
             )
             
-            db.child("posts").child(postId).updateChildren(updates)
-                .addOnCompleteListener { onComplete(it.isSuccessful) }
+            val pendingAction = PendingActionEntity(
+                actionType = "like_post",
+                jsonData = Gson().toJson(likeData),
+                retryCount = 0,
+                status = "pending"
+            )
+            
+            database.pendingActionDao().insertAction(pendingAction)
         }
     }
 
     fun addComment(postId: String, text: String, onComplete: (Boolean) -> Unit) {
-        val uid = auth.currentUser?.uid ?: return onComplete(false)
-        val commentId = db.child("posts").child(postId).child("comments").push().key ?: return onComplete(false)
-        
-        val comment = Comment(
-            commentId = commentId,
-            userId = uid,
-            username = auth.currentUser?.displayName ?: "Unknown User",
-            userProfileImage = auth.currentUser?.photoUrl?.toString() ?: "",
-            text = text,
-            timestamp = System.currentTimeMillis()
-        )
-        
-        db.child("posts").child(postId).child("comments").child(commentId).setValue(comment)
-            .addOnSuccessListener {
-                // Update comment count
-                db.child("posts").child(postId).child("commentCount").setValue(
-                    com.google.firebase.database.ServerValue.increment(1)
-                ).addOnCompleteListener { onComplete(it.isSuccessful) }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                val response = apiService.addComment(postId.toInt(), mapOf("comment" to text))
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    withContext(Dispatchers.Main) { onComplete(true) }
+                } else {
+                    // Queue for offline
+                    queueComment(postId, text)
+                    withContext(Dispatchers.Main) { onComplete(true) }
+                }
+            } catch (e: Exception) {
+                // Queue for offline
+                queueComment(postId, text)
+                withContext(Dispatchers.Main) { onComplete(true) }
             }
-            .addOnFailureListener { onComplete(false) }
+        }
+    }
+    
+    private fun queueComment(postId: String, comment: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val commentData = mapOf(
+                "postId" to postId.toInt(),
+                "comment" to comment,
+                "timestamp" to System.currentTimeMillis()
+            )
+            
+            val pendingAction = PendingActionEntity(
+                actionType = "comment_post",
+                jsonData = Gson().toJson(commentData),
+                retryCount = 0,
+                status = "pending"
+            )
+            
+            database.pendingActionDao().insertAction(pendingAction)
+        }
     }
 
     fun getPosts(onPostsLoaded: (List<Post>) -> Unit) {
-        val currentUserId = auth.currentUser?.uid
-        
-        if (currentUserId == null) {
-            // If not logged in, show all posts
-            getAllPosts(onPostsLoaded)
-            return
-        }
-        
-        // Get user's following list to filter posts
-        db.child("users").child(currentUserId).child("following").get().addOnSuccessListener { followingSnapshot ->
-            val followingList = mutableListOf<String>()
-            followingList.add(currentUserId) // Include own posts
-            
-            for (userSnapshot in followingSnapshot.children) {
-                val userId = userSnapshot.key
-                if (userId != null) {
-                    followingList.add(userId)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Load from cache first
+                val cachedPosts = database.postDao().getAllPosts()
+                withContext(Dispatchers.Main) {
+                    if (cachedPosts.isNotEmpty()) {
+                        onPostsLoaded(cachedPosts.map { it.toPost() })
+                    }
                 }
-            }
-            
-            // If not following anyone, show all posts
-            if (followingList.size <= 1) {
-                getAllPosts(onPostsLoaded)
-            } else {
-                // Get posts only from followed users
-                db.child("posts").orderByChild("timestamp").addValueEventListener(object : com.google.firebase.database.ValueEventListener {
-                    override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
-                        val posts = mutableListOf<Post>()
-                        for (postSnapshot in snapshot.children) {
-                            val post = postSnapshot.getValue(Post::class.java)
-                            if (post != null && followingList.contains(post.userId)) {
-                                posts.add(post)
-                            }
-                        }
-                        onPostsLoaded(posts.reversed()) // Show newest first
+                
+                // Fetch from API
+                val apiService = ApiClient.getApiService(context)
+                val response = apiService.getFeed()
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    val posts = response.body()?.data ?: emptyList()
+                    
+                    // Cache in Room
+                    posts.forEach { post ->
+                        database.postDao().insertPost(PostEntity.fromPost(post))
                     }
                     
-                    override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
-                        onPostsLoaded(emptyList())
+                    withContext(Dispatchers.Main) {
+                        onPostsLoaded(posts.map { it.toPost() })
                     }
-                })
-            }
-        }.addOnFailureListener {
-            // If error, show all posts
-            getAllPosts(onPostsLoaded)
-        }
-    }
-    
-    private fun getAllPosts(onPostsLoaded: (List<Post>) -> Unit) {
-        db.child("posts").orderByChild("timestamp").addValueEventListener(object : com.google.firebase.database.ValueEventListener {
-            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
-                val posts = mutableListOf<Post>()
-                for (postSnapshot in snapshot.children) {
-                    val post = postSnapshot.getValue(Post::class.java)
-                    post?.let { posts.add(it) }
+                } else if (cachedPosts.isEmpty()) {
+                    withContext(Dispatchers.Main) { onPostsLoaded(emptyList()) }
                 }
-                onPostsLoaded(posts.reversed()) // Show newest first
+            } catch (e: Exception) {
+                // Use cached posts on error
+                val cachedPosts = database.postDao().getAllPosts()
+                withContext(Dispatchers.Main) {
+                    onPostsLoaded(cachedPosts.map { it.toPost() })
+                }
             }
-            
-            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
-                onPostsLoaded(emptyList())
-            }
-        })
+        }
     }
     
     fun getUserPosts(userId: String, onComplete: (List<Post>) -> Unit) {
-        db.child("posts").orderByChild("userId").equalTo(userId).addListenerForSingleValueEvent(object : com.google.firebase.database.ValueEventListener {
-            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
-                val postsList = mutableListOf<Post>()
-                for (postSnapshot in snapshot.children) {
-                    val post = postSnapshot.getValue(Post::class.java)
-                    if (post != null) {
-                        postsList.add(post)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                val response = apiService.getUserPosts(userId.toInt())
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    val posts = response.body()?.data ?: emptyList()
+                    withContext(Dispatchers.Main) {
+                        onComplete(posts.map { it.toPost() })
                     }
+                } else {
+                    withContext(Dispatchers.Main) { onComplete(emptyList()) }
                 }
-                onComplete(postsList.reversed()) // Most recent first
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onComplete(emptyList()) }
             }
-            
-            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
-                onComplete(emptyList())
+        }
+    }
+    
+    fun getComments(postId: String, onComplete: (List<Comment>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                val response = apiService.getComments(postId.toInt())
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    val comments = response.body()?.data ?: emptyList()
+                    withContext(Dispatchers.Main) {
+                        onComplete(comments.map { it.toComment() })
+                    }
+                } else {
+                    withContext(Dispatchers.Main) { onComplete(emptyList()) }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { onComplete(emptyList()) }
             }
-        })
+        }
     }
 }

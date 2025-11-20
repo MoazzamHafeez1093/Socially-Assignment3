@@ -12,10 +12,6 @@ import com.example.assignment1.adapters.CommentsAdapter
 import com.example.assignment1.models.Comment
 import com.example.assignment1.models.Post
 import com.example.assignment1.utils.PostRepository
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
 
 class CommentsActivity : AppCompatActivity() {
     
@@ -35,7 +31,7 @@ class CommentsActivity : AppCompatActivity() {
             insets
         }
         
-        postRepository = PostRepository()
+        postRepository = PostRepository(this)
         
         // Get post from intent
         post = intent.getSerializableExtra("post") as Post
@@ -77,23 +73,10 @@ class CommentsActivity : AppCompatActivity() {
     }
     
     private fun loadComments() {
-        FirebaseDatabase.getInstance().reference
-            .child("posts")
-            .child(post.postId)
-            .child("comments")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    comments.clear()
-                    for (commentSnapshot in snapshot.children) {
-                        val comment = commentSnapshot.getValue(Comment::class.java)
-                        comment?.let { comments.add(it) }
-                    }
-                    commentsAdapter.notifyDataSetChanged()
-                }
-                
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(this@CommentsActivity, "Failed to load comments", Toast.LENGTH_SHORT).show()
-                }
-            })
+        postRepository.getComments(post.postId) { fetchedComments ->
+            comments.clear()
+            comments.addAll(fetchedComments)
+            commentsAdapter.notifyDataSetChanged()
+        }
     }
 }

@@ -18,7 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import com.example.assignment1.utils.PostRepository
-import com.google.firebase.auth.FirebaseAuth
+import com.example.assignment1.data.prefs.SessionManager
 
 /**
  * Instagram-style Create Post Activity
@@ -39,7 +39,7 @@ class CreatePostActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        postRepository = PostRepository()
+        postRepository = PostRepository(this)
         
         if (checkPermissions()) {
             createInstagramStyleUI()

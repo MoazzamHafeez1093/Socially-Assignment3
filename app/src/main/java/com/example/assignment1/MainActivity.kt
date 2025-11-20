@@ -8,29 +8,50 @@ import android.content.Intent
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.view.Gravity
-import com.google.firebase.FirebaseApp
-import com.google.firebase.auth.FirebaseAuth
+import com.example.assignment1.data.prefs.SessionManager
 
 class MainActivity : Activity() {
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         try {
-            // Initialize Firebase
-            FirebaseApp.initializeApp(this)
+            // Initialize session manager
+            sessionManager = SessionManager(this)
 
             // Create a simple splash screen programmatically
             createSimpleSplashScreen()
 
-            // Splash screen with 5-second delay - ALWAYS go to login
+            // Splash screen with 5-second delay then check auth
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
-                    android.util.Log.d("MainActivity", "Splash complete - ALWAYS going to LoginActivity")
+                    android.util.Log.d("MainActivity", "Splash complete - checking authentication")
                     
-                    // ALWAYS show login screen, never auto-login
-                    val intent = Intent(this, LoginActivity::class.java)
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(intent)
+                    // Check if user is logged in
+                    if (sessionManager.isLoggedIn()) {
+                        android.util.Log.d("MainActivity", "User logged in - going to HomeScreen")
+                        
+                        // Check if profile setup is required
+                        if (sessionManager.requiresProfileSetup()) {
+                            android.util.Log.d("MainActivity", "Profile setup required")
+                            // TODO: Navigate to ProfileSetupActivity when created
+                            val intent = Intent(this, HomeScreen::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        } else {
+                            // User is fully logged in, go to home
+                            val intent = Intent(this, HomeScreen::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                        }
+                    } else {
+                        android.util.Log.d("MainActivity", "User not logged in - going to LoginActivity")
+                        // User not logged in, go to login
+                        val intent = Intent(this, LoginActivity::class.java)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                    }
                     finish()
                 } catch (e: Exception) {
                     android.util.Log.e("MainActivity", "Error navigating: ${e.message}", e)

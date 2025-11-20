@@ -4,7 +4,7 @@ namespace Socially\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\ApiResponse;
 use Socially\Repositories\UserRepository;
 
 class SearchController

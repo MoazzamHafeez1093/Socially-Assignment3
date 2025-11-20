@@ -7,7 +7,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Respect\Validation\Exceptions\NestedValidationException;
 use Respect\Validation\Validator as v;
 use Socially\Helpers\MediaUploader;
-use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\ApiResponse;
 use Socially\Helpers\FcmNotifier;
 use Socially\Repositories\PostCommentRepository;
 use Socially\Repositories\PostLikeRepository;

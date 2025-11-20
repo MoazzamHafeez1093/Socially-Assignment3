@@ -2,7 +2,7 @@
 
 namespace Socially\Controllers;
 
-use App\Helpers\Response;
+use Socially\Helpers\ApiResponse;
 use Socially\Repositories\FcmTokenRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -28,12 +28,12 @@ class FcmController
         $token = $body['token'] ?? null;
 
         if (!$token) {
-            return Response::error($response, 'FCM token is required', 400);
+            return ApiResponse::error($response, 'FCM token is required', 400);
         }
 
         $this->fcmTokenRepo->upsert($userId, $token);
 
-        return Response::success($response, [
+        return ApiResponse::success($response, [
             'message' => 'FCM token registered successfully'
         ]);
     }
@@ -48,7 +48,7 @@ class FcmController
         
         $this->fcmTokenRepo->delete($userId);
 
-        return Response::success($response, [
+        return ApiResponse::success($response, [
             'message' => 'FCM token deleted successfully'
         ]);
     }

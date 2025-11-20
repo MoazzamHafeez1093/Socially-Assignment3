@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Controllers;
+namespace Socially\Controllers;
 
-use App\Helpers\Response;
-use App\Repositories\PresenceRepository;
+use Socially\Helpers\ApiResponse;
+use Socially\Repositories\PresenceRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -26,7 +26,7 @@ class PresenceController
         
         $this->presenceRepo->updateLastSeen($userId);
         
-        return Response::success($response, [
+        return ApiResponse::success($response, [
             'message' => 'Presence updated',
             'timestamp' => date('Y-m-d H:i:s')
         ]);
@@ -42,7 +42,7 @@ class PresenceController
         
         $this->presenceRepo->setOffline($userId);
         
-        return Response::success($response, [
+        return ApiResponse::success($response, [
             'message' => 'Marked as offline'
         ]);
     }
@@ -58,14 +58,14 @@ class PresenceController
         $presence = $this->presenceRepo->getPresence($targetUserId);
         
         if (!$presence) {
-            return Response::success($response, [
+            return ApiResponse::success($response, [
                 'user_id' => $targetUserId,
                 'is_online' => false,
                 'last_seen' => null
             ]);
         }
         
-        return Response::success($response, $presence);
+        return ApiResponse::success($response, $presence);
     }
 
     /**
@@ -79,7 +79,7 @@ class PresenceController
         $userIds = $body['user_ids'] ?? [];
 
         if (!is_array($userIds) || empty($userIds)) {
-            return Response::error($response, 'user_ids array is required', 400);
+            return ApiResponse::error($response, 'user_ids array is required', 400);
         }
 
         // Sanitize to integers
@@ -87,7 +87,7 @@ class PresenceController
         
         $presences = $this->presenceRepo->getBulkPresence($userIds);
         
-        return Response::success($response, [
+        return ApiResponse::success($response, [
             'presences' => $presences
         ]);
     }

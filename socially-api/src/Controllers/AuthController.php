@@ -6,7 +6,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Respect\Validation\Exceptions\NestedValidationException;
 use Respect\Validation\Validator as v;
-use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\ApiResponse;
 use Socially\Repositories\SessionRepository;
 use Socially\Repositories\UserRepository;
 use Throwable;

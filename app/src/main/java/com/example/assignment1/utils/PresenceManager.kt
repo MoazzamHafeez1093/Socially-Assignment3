@@ -1,38 +1,50 @@
 package com.example.assignment1.utils
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
+import android.content.Context
+import com.example.assignment1.data.network.ApiClient
+import com.example.assignment1.data.prefs.SessionManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object PresenceManager {
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
-    fun setOnline() {
-        val uid = auth.currentUser?.uid ?: return
-        val userStatusRef = database.reference.child("status").child(uid)
-        val updates = mapOf(
-            "isOnline" to true,
-            "lastSeen" to System.currentTimeMillis()
-        )
-        // Ensure we mark offline if connection drops
-        userStatusRef.onDisconnect().updateChildren(
-            mapOf(
-                "isOnline" to false,
-                "lastSeen" to System.currentTimeMillis()
-            )
-        )
-        userStatusRef.updateChildren(updates)
+    fun setOnline(context: Context) {
+        val sessionManager = SessionManager(context)
+        val userId = sessionManager.getUserId() ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                apiService.updatePresence(
+                    mapOf(
+                        "isOnline" to true,
+                        "lastSeen" to System.currentTimeMillis()
+                    )
+                )
+            } catch (e: Exception) {
+                // Silently fail - not critical
+            }
+        }
     }
 
-    fun setOffline() {
-        val uid = auth.currentUser?.uid ?: return
-        val userStatusRef = database.reference.child("status").child(uid)
-        userStatusRef.updateChildren(
-            mapOf(
-                "isOnline" to false,
-                "lastSeen" to System.currentTimeMillis()
-            )
-        )
+    fun setOffline(context: Context) {
+        val sessionManager = SessionManager(context)
+        val userId = sessionManager.getUserId() ?: return
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(context)
+                apiService.updatePresence(
+                    mapOf(
+                        "isOnline" to false,
+                        "lastSeen" to System.currentTimeMillis()
+                    )
+                )
+            } catch (e: Exception) {
+                // Silently fail - not critical
+            }
+        }
     }
 }
 

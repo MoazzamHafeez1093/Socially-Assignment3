@@ -1,15 +1,27 @@
 package com.example.assignment1.data.models
 
 data class Post(
-    val id: Int,
-    val user_id: Int,
+    val postId: String,
+    val userId: String,
+    val username: String,
+    val userProfilePic: String?,
     val caption: String?,
-    val media_url: String?,
-    val created_at: String,
-    val updated_at: String,
-    val username: String? = null,
-    val profile_image: String? = null,
-    val like_count: Int = 0,
-    val comment_count: Int = 0,
-    val liked_by_user: Boolean = false
-)
+    val images: List<String>,
+    val likesCount: Int?,
+    val commentsCount: Int?,
+    val likedByCurrentUser: Boolean?,
+    val createdAt: Long
+) {
+    // Helper to convert to legacy Post model for compatibility
+    fun toLegacyPost() = com.example.assignment1.models.Post(
+        postId = postId,
+        userId = userId,
+        username = username,
+        userProfileImage = userProfilePic ?: "",
+        imageUrl = images.firstOrNull() ?: "",
+        caption = caption ?: "",
+        timestamp = createdAt,
+        likeCount = likesCount ?: 0,
+        commentCount = commentsCount ?: 0
+    )
+}

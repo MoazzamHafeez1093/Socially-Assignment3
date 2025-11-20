@@ -19,13 +19,19 @@ import com.example.assignment1.models.Post
 import com.example.assignment1.utils.Base64Image
 import com.example.assignment1.utils.PostRepository
 import com.example.assignment1.utils.PresenceManager
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
+import com.example.assignment1.data.network.ApiClient
+import com.example.assignment1.data.prefs.SessionManager
+import com.example.assignment1.data.local.AppDatabase
+import com.example.assignment1.data.local.entities.StoryEntity
+import com.example.assignment1.data.local.entities.PostEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class HomeScreen : AppCompatActivity() {
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private lateinit var sessionManager: SessionManager
+    private lateinit var database: AppDatabase
     private lateinit var postRepository: PostRepository
     private lateinit var postsRecyclerView: RecyclerView
     private lateinit var postAdapter: PostAdapter
@@ -33,6 +39,10 @@ class HomeScreen : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize session and database
+        sessionManager = SessionManager(this)
+        database = AppDatabase.getInstance(this)
 
         try {
         setContentView(R.layout.activity_home_screen)
@@ -43,9 +53,9 @@ class HomeScreen : AppCompatActivity() {
         }
         
         try {
-        PresenceManager.setOnline()
+        PresenceManager.setOnline(this)
         } catch (e: Exception) {
-            // If Firebase is not initialized, continue without presence
+            // Continue without presence
         }
         
         // Initialize post repository and adapter
@@ -87,11 +97,12 @@ class HomeScreen : AppCompatActivity() {
         val usernameTextView = findViewById<TextView>(R.id.usernameTextView)
         usernameTextView.text = username
 
-        // Load and display stories from Firebase with 24-hour expiry
+        // Load and display stories from API with offline caching
             try {
-        loadStoriesFromFirebase()
+        loadStoriesFromAPI()
             } catch (e: Exception) {
-                // If Firebase is not initialized, continue without stories
+                // If API fails, load from cache
+                loadStoriesFromCache()
             }
 
         // Set up the Search button to open the search screen
@@ -171,11 +182,12 @@ class HomeScreen : AppCompatActivity() {
             startActivityForResult(intentCreatePost, 100)
         }
 
-        // Load posts from Firebase
+        // Load posts from API with offline caching
             try {
-        loadPostsFromFirebase()
+        loadPostsFromAPI()
             } catch (e: Exception) {
-                // If Firebase is not initialized, continue without posts
+                // If API fails, load from cache
+                loadPostsFromCache()
             }
         } catch (e: Exception) {
             // If any findViewById fails, continue without those features
@@ -203,162 +215,148 @@ class HomeScreen : AppCompatActivity() {
         }
     }
 
-    private fun loadPostsFromFirebase() {
-        try {
-        postRepository.getPosts { loadedPosts ->
-            runOnUiThread {
-                posts.clear()
-                posts.addAll(loadedPosts)
-                postAdapter.notifyDataSetChanged()
+    private fun loadPostsFromAPI() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(this@HomeScreen)
+                val response = apiService.getFeedPosts(page = 1, limit = 20)
+                
+                if (response.status == "success" && response.data != null) {
+                    // Cache posts in Room database
+                    val postEntities = response.data.map { PostEntity.fromPost(it) }
+                    database.postDao().deleteAllPosts() // Clear old posts
+                    database.postDao().insertPosts(postEntities)
+                    
+                    // Convert API posts to legacy format for UI
+                    val legacyPosts = response.data.map { it.toLegacyPost() }
+                    
+                    // Update UI
+                    withContext(Dispatchers.Main) {
+                        posts.clear()
+                        posts.addAll(legacyPosts)
+                        postAdapter.notifyDataSetChanged()
+                    }
+                } else {
+                    // Load from cache if API fails
+                    loadPostsFromCache()
+                }
+            } catch (e: Exception) {
+                // Load from cache on error
+                withContext(Dispatchers.Main) {
+                    loadPostsFromCache()
+                }
             }
+        }
+    }
+    
+    private fun loadPostsFromCache() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val postEntities = database.postDao().getPosts(limit = 20, offset = 0)
+                val legacyPosts = postEntities.map { it.toPost().toLegacyPost() }
+                
+                withContext(Dispatchers.Main) {
+                    if (legacyPosts.isEmpty()) {
+                        Toast.makeText(this@HomeScreen, "No posts available offline", Toast.LENGTH_SHORT).show()
+                    } else {
+                        posts.clear()
+                        posts.addAll(legacyPosts)
+                        postAdapter.notifyDataSetChanged()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@HomeScreen, "Failed to load posts", Toast.LENGTH_SHORT).show()
+                }
             }
-        } catch (e: Exception) {
-            // If Firebase is not initialized, continue without posts
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 100 && resultCode == RESULT_OK) {
-            loadPostsFromFirebase()
+            loadPostsFromAPI()
         }
         if (requestCode == 200 && resultCode == RESULT_OK) {
-            // Story uploaded, reload stories and adjust click behaviour
-            loadStoriesFromFirebase()
+            // Story uploaded, reload stories
+            loadStoriesFromAPI()
         }
     }
 
     override fun onStart() {
         super.onStart()
         try {
-        PresenceManager.setOnline()
+        PresenceManager.setOnline(this)
         } catch (e: Exception) {
-            // If Firebase is not initialized, continue without presence
+            // Continue without presence
         }
     }
 
     override fun onStop() {
         super.onStop()
         try {
-        PresenceManager.setOffline()
+        PresenceManager.setOffline(this)
         } catch (e: Exception) {
-            // If Firebase is not initialized, continue without presence
+            // Continue without presence
         }
     }
 
-    private fun loadStoriesFromFirebase() {
-        try {
-            val currentTime = System.currentTimeMillis()
-            val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-            
-            if (currentUserId == null) {
-                // If not logged in, show all stories
-                loadAllStories(currentTime)
-                return
+    private fun loadStoriesFromAPI() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(this@HomeScreen)
+                val response = apiService.getStories()
+                
+                if (response.status == "success" && response.data != null) {
+                    // Cache stories in Room database
+                    val storyEntities = response.data.map { StoryEntity.fromStory(it) }
+                    database.storyDao().deleteAllStories() // Clear old stories
+                    database.storyDao().insertStories(storyEntities)
+                    
+                    // Convert API stories to legacy format for UI
+                    val legacyStories = response.data.map { it.toLegacyStory() }
+                    
+                    // Update UI
+                    withContext(Dispatchers.Main) {
+                        updateStoriesUI(legacyStories)
+                    }
+                } else {
+                    // Load from cache if API fails
+                    loadStoriesFromCache()
+                }
+            } catch (e: Exception) {
+                // Load from cache on error
+                withContext(Dispatchers.Main) {
+                    loadStoriesFromCache()
+                }
             }
-            
-            // Get user's following list to filter stories
-            database.reference.child("users").child(currentUserId).child("following").get()
-                .addOnSuccessListener { followingSnapshot ->
-                    val followingList = mutableListOf<String>()
-                    followingList.add(currentUserId) // Include own stories
-                    
-                    for (userSnapshot in followingSnapshot.children) {
-                        val userId = userSnapshot.key
-                        if (userId != null) {
-                            followingList.add(userId)
-                        }
+        }
+    }
+    
+    private fun loadStoriesFromCache() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val storyEntities = database.storyDao().getActiveStories()
+                val stories = storyEntities.map { it.toStory().toLegacyStory() }
+                
+                withContext(Dispatchers.Main) {
+                    if (stories.isEmpty()) {
+                        Toast.makeText(this@HomeScreen, "No stories available offline", Toast.LENGTH_SHORT).show()
+                    } else {
+                        updateStoriesUI(stories)
                     }
-            
-            // Load stories from Firebase with 24-hour expiry
-            database.reference.child("stories")
-                .orderByChild("expiresAt")
-                .startAt(currentTime.toDouble()) // Only get stories that haven't expired
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                                val storyList = mutableListOf<com.example.assignment1.models.Story>()
-                        for (storySnapshot in snapshot.children) {
-                                    try {
-                            val storyData = storySnapshot.getValue(Map::class.java) as? Map<String, Any>
-                                        if (storyData != null) {
-                                            val userId = storyData["userId"] as? String ?: ""
-                                            
-                                            // Filter: only show stories from followed users or all if not following anyone
-                                            if (followingList.isEmpty() || followingList.contains(userId)) {
-                                                val story = com.example.assignment1.models.Story(
-                                                    storyId = storyData["storyId"] as? String ?: "",
-                                                    userId = userId,
-                                                    username = storyData["username"] as? String ?: "User",
-                                                    userProfileImage = storyData["userProfileImageBase64"] as? String ?: "",
-                                                    imageUrl = storyData["imageBase64"] as? String ?: "",
-                                                    videoUrl = storyData["videoBase64"] as? String ?: "",
-                                                    timestamp = (storyData["timestamp"] as? Long) ?: System.currentTimeMillis(),
-                                                    expiresAt = (storyData["expiresAt"] as? Long) ?: System.currentTimeMillis()
-                                                )
-                                                storyList.add(story)
-                                            }
-                                        }
-                                    } catch (e: Exception) {
-                                        // Skip malformed story
-                                    }
-                        }
-                        
-                        // Update UI with Firebase stories
-                                updateStoriesUI(storyList)
-                        
-                        // Clean up expired stories
-                        cleanupExpiredStories(currentTime)
-                    }
-                    
-                    override fun onCancelled(error: DatabaseError) {
-                        Toast.makeText(this@HomeScreen, "Failed to load stories", Toast.LENGTH_SHORT).show()
-                    }
-                })
                 }
-                .addOnFailureListener {
-                    // If error, show all stories
-                    loadAllStories(currentTime)
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@HomeScreen, "Failed to load stories", Toast.LENGTH_SHORT).show()
                 }
-        } catch (e: Exception) {
-            // If Firebase is not initialized, continue without stories
+            }
         }
     }
     
     private fun loadAllStories(currentTime: Long) {
-        database.reference.child("stories")
-            .orderByChild("expiresAt")
-            .startAt(currentTime.toDouble())
-            .addListenerForSingleValueEvent(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val storyList = mutableListOf<com.example.assignment1.models.Story>()
-                    for (storySnapshot in snapshot.children) {
-                        try {
-                            val storyData = storySnapshot.getValue(Map::class.java) as? Map<String, Any>
-                            if (storyData != null) {
-                                val story = com.example.assignment1.models.Story(
-                                    storyId = storyData["storyId"] as? String ?: "",
-                                    userId = storyData["userId"] as? String ?: "",
-                                    username = storyData["username"] as? String ?: "User",
-                                    userProfileImage = storyData["userProfileImageBase64"] as? String ?: "",
-                                    imageUrl = storyData["imageBase64"] as? String ?: "",
-                                    videoUrl = storyData["videoBase64"] as? String ?: "",
-                                    timestamp = (storyData["timestamp"] as? Long) ?: System.currentTimeMillis(),
-                                    expiresAt = (storyData["expiresAt"] as? Long) ?: System.currentTimeMillis()
-                                )
-                                storyList.add(story)
-                            }
-                        } catch (e: Exception) {
-                            // Skip malformed story
-                        }
-                    }
-                    updateStoriesUI(storyList)
-                    cleanupExpiredStories(currentTime)
-                }
-                
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(this@HomeScreen, "Failed to load stories", Toast.LENGTH_SHORT).show()
-                }
-            })
+        // Deprecated - now using API
+        loadStoriesFromAPI()
     }
     
     private fun updateStoriesUI(stories: List<com.example.assignment1.models.Story>) {
@@ -367,8 +365,8 @@ class HomeScreen : AppCompatActivity() {
                 return
             }
             
-            // Populate the first story bubble (story1/profileImageView) with current user's story if available
-            val currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            // Populate the first story bubble with current user's story if available
+            val currentUserId = sessionManager.getUserId()
             val myStory = stories.firstOrNull { it.userId == currentUserId }
             
             try {

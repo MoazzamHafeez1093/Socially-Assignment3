@@ -1,0 +1,10 @@
+# Agora Configuration
+# Get your App ID from https://console.agora.io/
+AGORA_APP_ID=your_agora_app_id_here
+AGORA_TOKEN=your_agora_token_here
+
+# Instructions:
+# 1. Copy this file to local.properties
+# 2. Replace 'your_agora_app_id_here' with your actual Agora App ID
+# 3. Replace 'your_agora_token_here' with your actual Agora Token (optional for testing)
+# 4. The app will work with App ID only, but Token is recommended for production

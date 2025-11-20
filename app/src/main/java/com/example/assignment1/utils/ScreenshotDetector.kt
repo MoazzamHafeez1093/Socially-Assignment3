@@ -6,12 +6,14 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.example.assignment1.models.User
-import com.google.firebase.database.FirebaseDatabase
+import com.example.assignment1.data.models.User
+import com.example.assignment1.data.network.ApiClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class ScreenshotDetector(private val activity: Activity) {
     private val contentResolver: ContentResolver = activity.contentResolver
-    private val database = FirebaseDatabase.getInstance()
     private var contentObserver: ContentObserver? = null
 
     fun startDetection(currentUser: User, chatPartnerId: String) {
@@ -41,16 +43,26 @@ class ScreenshotDetector(private val activity: Activity) {
     }
 
     private fun notifyScreenshotTaken(currentUser: User, chatPartnerId: String) {
-        // Send notification to the other user
-        val notificationData = mapOf(
-            "title" to "Screenshot Alert",
-            "body" to "${currentUser.username} took a screenshot of your chat",
-            "type" to "screenshot_alert",
-            "fromUserId" to currentUser.userId,
-            "fromUsername" to currentUser.username
-        )
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(activity)
 
-        // Save screenshot alert to database
-        database.reference.child("screenshotAlerts").child(chatPartnerId).push().setValue(notificationData)
+                // Send screenshot notification via FCM
+                apiService.sendFcmNotification(
+                    mapOf(
+                        "userId" to chatPartnerId,
+                        "title" to "Screenshot Alert",
+                        "body" to "${currentUser.username} took a screenshot of your chat",
+                        "data" to mapOf(
+                            "type" to "screenshot_alert",
+                            "fromUserId" to currentUser.userId,
+                            "fromUsername" to currentUser.username
+                        )
+                    )
+                )
+            } catch (e: Exception) {
+                // Silently fail - not critical
+            }
+        }
     }
 }

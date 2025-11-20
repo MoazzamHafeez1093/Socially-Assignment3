@@ -173,15 +173,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun sendTokenToServer(token: String) {
-        // Save token to Firebase Database for the current user
-        val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-        userId?.let {
-            com.google.firebase.database.FirebaseDatabase.getInstance()
-                .reference
-                .child("users")
-                .child(it)
-                .child("fcmToken")
-                .setValue(token)
+        // Save token via REST API
+        try {
+            val sessionManager = com.example.assignment1.data.prefs.SessionManager(applicationContext)
+            if (sessionManager.isLoggedIn()) {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        val apiService = com.example.assignment1.data.network.ApiClient.getApiService(applicationContext)
+                        apiService.updateFcmToken(mapOf("fcm_token" to token))
+                        android.util.Log.d("FCM", "Token sent to server: $token")
+                    } catch (e: Exception) {
+                        android.util.Log.e("FCM", "Failed to send token: ${e.message}")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FCM", "Error updating FCM token: ${e.message}")
         }
     }
     

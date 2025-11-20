@@ -12,8 +12,8 @@ import java.util.concurrent.TimeUnit
 object ApiClient {
     
     // For Android Emulator use: 10.0.2.2
-    // For Physical Device use: your local IP (192.168.1.9)
-    private const val BASE_URL = "http://192.168.1.9/socially-api/public/"
+    // For Physical Device use: your local IP (192.168.110.75)
+    private const val BASE_URL = "http://192.168.110.75/socially-api/public/"
     
     private var retrofit: Retrofit? = null
     private lateinit var sessionManager: SessionManager

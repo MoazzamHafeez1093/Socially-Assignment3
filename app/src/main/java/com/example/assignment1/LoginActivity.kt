@@ -13,12 +13,16 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.assignment1.utils.FcmTokenManager
-import com.example.assignment1.utils.FirebaseAuthManager
+import com.example.assignment1.data.network.ApiClient
+import com.example.assignment1.data.prefs.SessionManager
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoginActivity : AppCompatActivity() {
-    private lateinit var authManager: FirebaseAuthManager
+    private lateinit var sessionManager: SessionManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,11 +36,8 @@ class LoginActivity : AppCompatActivity() {
             insets
         }
 
-        try {
-            authManager = FirebaseAuthManager()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Firebase initialization failed: ${e.message}", Toast.LENGTH_LONG).show()
-        }
+        // Initialize session manager
+        sessionManager = SessionManager(this)
 
         setupLoginButton()
         setupSignupButton()
@@ -75,28 +76,46 @@ class LoginActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            // Try to login with Firebase
-            try {
-                authManager.signIn(email, password, this) { success, message ->
-                    if (success) {
-                        // Login successful - register FCM token for push notifications
-                        FcmTokenManager.registerFcmToken()
-                        
-                        // Go to home screen
-                        val intent = Intent(this, HomeScreen::class.java)
-                        startActivity(intent)
-                        finish()
-                    } else {
-                        // Login failed, show error message
-                        Toast.makeText(this, message ?: "Login failed", Toast.LENGTH_SHORT).show()
+            // Disable button during login
+            loginButton.isEnabled = false
+            
+            // Call API to login
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val apiService = ApiClient.getApiService(this@LoginActivity)
+                    val request = mapOf(
+                        "email" to email,
+                        "password" to password
+                    )
+                    
+                    val response = apiService.login(request)
+                    
+                    withContext(Dispatchers.Main) {
+                        if (response.status == "success" && response.data != null) {
+                            // Save auth data to session
+                            sessionManager.saveAuthData(
+                                token = response.data.token,
+                                user = response.data.user
+                            )
+                            
+                            Toast.makeText(this@LoginActivity, "Login successful", Toast.LENGTH_SHORT).show()
+                            
+                            // Navigate to home screen
+                            val intent = Intent(this@LoginActivity, HomeScreen::class.java)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            finish()
+                        } else {
+                            Toast.makeText(this@LoginActivity, response.message ?: "Login failed", Toast.LENGTH_SHORT).show()
+                            loginButton.isEnabled = true
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@LoginActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        loginButton.isEnabled = true
                     }
                 }
-            } catch (e: Exception) {
-                // If Firebase fails, just navigate to home screen for now
-                Toast.makeText(this, "Firebase error, proceeding without auth", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, HomeScreen::class.java)
-                startActivity(intent)
-                finish()
             }
         }
     }

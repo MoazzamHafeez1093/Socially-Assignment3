@@ -20,13 +20,24 @@ import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import com.example.assignment1.utils.Base64Image
-import com.example.assignment1.utils.FirebaseAuthManager
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
+import com.example.assignment1.data.network.ApiClient
+import com.example.assignment1.data.prefs.SessionManager
+import com.example.assignment1.data.local.AppDatabase
+import com.example.assignment1.data.local.entities.PendingActionEntity
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
+import java.io.FileOutputStream
 
 class story_Upload : AppCompatActivity() {
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private val authManager = FirebaseAuthManager()
+    private lateinit var sessionManager: SessionManager
+    private lateinit var database: AppDatabase
     private var selectedImageUri: Uri? = null
     private lateinit var previewImageView: ImageView
     private lateinit var galleryRecyclerView: RecyclerView
@@ -35,6 +46,10 @@ class story_Upload : AppCompatActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize session and database
+        sessionManager = SessionManager(this)
+        database = AppDatabase.getInstance(this)
         
         // Check and request permissions
         if (checkPermissions()) {
@@ -319,9 +334,7 @@ class story_Upload : AppCompatActivity() {
     }
     
     private fun uploadStory() {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        
-        if (currentUser == null) {
+        if (!sessionManager.isLoggedIn()) {
             Toast.makeText(this, "Please login first", Toast.LENGTH_SHORT).show()
             return
         }
@@ -331,42 +344,69 @@ class story_Upload : AppCompatActivity() {
             return
         }
         
-        val base64 = Base64Image.uriToBase64(this, selectedImageUri!!, 70)
-        if (base64 != null) {
-            val storyId = database.reference.child("stories").push().key
-            if (storyId != null) {
-                authManager.getUserData(currentUser.uid) { userData ->
-                    val username = userData?.username ?: currentUser.email ?: "User"
-                    val profileImageBase64 = userData?.profileImageBase64 ?: ""
-                    
-                    val currentTime = System.currentTimeMillis()
-                    val expiryTime = currentTime + (24L * 60 * 60 * 1000)
-                    
-                    val storyData = mapOf(
-                        "storyId" to storyId,
-                        "userId" to currentUser.uid,
-                        "username" to username,
-                        "userProfileImageBase64" to profileImageBase64,
-                        "imageBase64" to base64,
-                        "timestamp" to currentTime,
-                        "expiresAt" to expiryTime
-                    )
-                    
-                    database.reference.child("stories").child(storyId).setValue(storyData)
-                        .addOnSuccessListener {
-                            database.reference.child("users").child(currentUser.uid)
-                                .child("stories").child(storyId).setValue(true)
-                            
-                            Toast.makeText(this, "Story uploaded! Expires in 24 hours", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "Uploading story...", Toast.LENGTH_SHORT).show()
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Create temp file from URI
+                val inputStream = contentResolver.openInputStream(selectedImageUri!!)
+                val tempFile = File(cacheDir, "story_${System.currentTimeMillis()}.jpg")
+                FileOutputStream(tempFile).use { output ->
+                    inputStream?.copyTo(output)
+                }
+                inputStream?.close()
+                
+                // Create multipart request
+                val requestBody = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                val mediaPart = MultipartBody.Part.createFormData("media", tempFile.name, requestBody)
+                
+                // Call API
+                val apiService = ApiClient.getApiService(this@story_Upload)
+                val response = apiService.uploadStory(mediaPart)
+                
+                // Clean up temp file
+                tempFile.delete()
+                
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful && response.body()?.status == "success") {
+                        Toast.makeText(this@story_Upload, "Story uploaded! Expires in 24 hours", Toast.LENGTH_LONG).show()
+                        setResult(RESULT_OK)
+                        finish()
+                    } else {
+                        Toast.makeText(this@story_Upload, "Upload failed: ${response.body()?.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                // Queue for offline upload
+                withContext(Dispatchers.IO) {
+                    try {
+                        val storyData = mapOf(
+                            "imageUri" to selectedImageUri.toString(),
+                            "timestamp" to System.currentTimeMillis()
+                        )
+                        
+                        val pendingAction = PendingActionEntity(
+                            actionType = "upload_story",
+                            jsonData = Gson().toJson(storyData),
+                            retryCount = 0,
+                            status = "pending",
+                            createdAt = System.currentTimeMillis()
+                        )
+                        
+                        database.pendingActionDao().insertAction(pendingAction)
+                        
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@story_Upload, "Queued for upload when online", Toast.LENGTH_SHORT).show()
+                            setResult(RESULT_OK)
                             finish()
                         }
-                        .addOnFailureListener {
-                            Toast.makeText(this, "Upload failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    } catch (queueError: Exception) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@story_Upload, "Failed to upload: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
+                    }
                 }
             }
-        } else {
-            Toast.makeText(this, "Failed to process image", Toast.LENGTH_SHORT).show()
         }
     }
     

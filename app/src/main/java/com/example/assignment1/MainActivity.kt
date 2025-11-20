@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.view.Gravity
 import com.example.assignment1.data.prefs.SessionManager
+import com.example.assignment1.workers.SyncWorker
 
 class MainActivity : Activity() {
     private lateinit var sessionManager: SessionManager
@@ -19,6 +20,9 @@ class MainActivity : Activity() {
         try {
             // Initialize session manager
             sessionManager = SessionManager(this)
+            
+            // Initialize WorkManager periodic sync (15 minutes interval)
+            SyncWorker.schedulePeriodic(this)
 
             // Create a simple splash screen programmatically
             createSimpleSplashScreen()

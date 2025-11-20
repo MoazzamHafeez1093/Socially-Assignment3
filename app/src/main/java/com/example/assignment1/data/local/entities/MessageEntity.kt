@@ -3,6 +3,7 @@ package com.example.assignment1.data.local.entities
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.assignment1.data.models.Message
+import com.example.assignment1.utils.ChatMessage
 
 @Entity(tableName = "messages")
 data class MessageEntity(
@@ -31,6 +32,16 @@ data class MessageEntity(
         isRead = isRead,
         readAt = readAt,
         createdAt = createdAt
+    )
+
+    fun toChatMessage() = ChatMessage(
+        messageId = messageId,
+        chatId = "${if (senderId < receiverId) senderId else receiverId}_${if (senderId < receiverId) receiverId else senderId}",
+        senderId = senderId,
+        type = messageType,
+        content = content ?: imageUrl ?: "",
+        timestamp = createdAt,
+        isVanishMode = isVanishMode
     )
 
     companion object {

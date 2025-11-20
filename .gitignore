@@ -13,3 +13,16 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Sensitive files with API keys
+app/google-services.json
+
+# Backend API sensitive files
+socially-api/.env
+socially-api/vendor/
+socially-api/composer.phar
+socially-api/composer.lock
+socially-api/storage/uploads/*
+!socially-api/storage/uploads/.gitkeep
+socially-api/storage/logs/*
+!socially-api/storage/logs/.gitkeep

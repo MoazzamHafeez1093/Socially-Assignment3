@@ -13,16 +13,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.assignment1.adapters.UserAdapter
 import com.example.assignment1.models.User
-import com.example.assignment1.utils.FirebaseAuthManager
+import com.example.assignment1.data.prefs.SessionManager
+import com.example.assignment1.data.network.ApiClient
 import com.example.assignment1.utils.FollowManager
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ValueEventListener
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class search : AppCompatActivity() {
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
-    private val authManager = FirebaseAuthManager()
+    private lateinit var sessionManager: SessionManager
     private lateinit var followManager: FollowManager
     private lateinit var searchResultsLayout: LinearLayout
     private lateinit var searchInput: EditText
@@ -40,11 +40,8 @@ class search : AppCompatActivity() {
             insets
         }
         
-        try {
-            followManager = FollowManager()
-        } catch (e: Exception) {
-            // If Firebase fails to initialize, continue without it
-        }
+        sessionManager = SessionManager(this)
+        followManager = FollowManager(this)
         
         setupUI()
         setupBottomNavigation()
@@ -100,11 +97,11 @@ class search : AppCompatActivity() {
             // Clear previous results from UI
             searchResultsLayout.removeAllViews()
             
-            val currentUser = authManager.getCurrentUser()
-            if (currentUser != null) {
+            val currentUserId = sessionManager.getUserId()
+            if (currentUserId != null) {
                 when (currentFilter) {
-                    "followers" -> searchInFollowers(query, currentUser.userId)
-                    "following" -> searchInFollowing(query, currentUser.userId)
+                    "followers" -> searchInFollowers(query, currentUserId)
+                    "following" -> searchInFollowing(query, currentUserId)
                     else -> searchAllUsers(query)
                 }
             } else {
@@ -116,29 +113,28 @@ class search : AppCompatActivity() {
     }
     
     private fun searchAllUsers(query: String) {
-        try {
-            // Fetch all users, then perform case-insensitive contains filtering locally
-            database.reference.child("users")
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val filtered = mutableListOf<User>()
-                        for (userSnapshot in snapshot.children) {
-                            val user = try { userSnapshot.getValue(User::class.java) } catch (e: Exception) { null }
-                            if (user != null && user.username.contains(query, ignoreCase = true)) {
-                                filtered.add(user)
-                            }
-                        }
-                        runOnUiThread {
-                            displaySearchResults(filtered)
-                            Toast.makeText(this@search, "Found ${filtered.size} users", Toast.LENGTH_SHORT).show()
-                        }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val apiService = ApiClient.getApiService(this@search)
+                val response = apiService.searchUsers(query)
+                
+                if (response.isSuccessful && response.body()?.status == "success") {
+                    val users = response.body()?.data ?: emptyList()
+                    withContext(Dispatchers.Main) {
+                        displaySearchResults(users.map { it.toUser() })
+                        Toast.makeText(this@search, "Found ${users.size} users", Toast.LENGTH_SHORT).show()
                     }
-                    override fun onCancelled(error: DatabaseError) {
-                        runOnUiThread { Toast.makeText(this@search, "Search failed", Toast.LENGTH_SHORT).show() }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        displaySearchResults(emptyList())
+                        Toast.makeText(this@search, "No users found", Toast.LENGTH_SHORT).show()
                     }
-                })
-        } catch (e: Exception) {
-            Toast.makeText(this, "Search error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@search, "Search error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
     

@@ -8,9 +8,12 @@ use Respect\Validation\Exceptions\NestedValidationException;
 use Respect\Validation\Validator as v;
 use Socially\Helpers\MediaUploader;
 use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\FcmNotifier;
 use Socially\Repositories\PostCommentRepository;
 use Socially\Repositories\PostLikeRepository;
 use Socially\Repositories\PostRepository;
+use Socially\Repositories\UserRepository;
+use Socially\Repositories\FcmTokenRepository;
 
 class PostController
 {
@@ -18,7 +21,10 @@ class PostController
         private PostRepository $posts,
         private PostLikeRepository $likes,
         private PostCommentRepository $comments,
-        private MediaUploader $uploader
+        private MediaUploader $uploader,
+        private FcmNotifier $fcm,
+        private UserRepository $users,
+        private FcmTokenRepository $fcmTokens
     ) {
     }
 
@@ -89,6 +95,21 @@ class PostController
         $postId = (int) $args['id'];
 
         $this->likes->add($postId, $userId);
+        
+        // Notify post owner
+        $post = $this->posts->findById($postId);
+        if ($post && (int) $post['user_id'] !== $userId) {
+            $likerUser = $this->users->findById($userId);
+            $ownerToken = $this->fcmTokens->getToken((int) $post['user_id']);
+            if ($ownerToken && $likerUser) {
+                $this->fcm->notifyPostLike(
+                    $ownerToken,
+                    $likerUser['username'],
+                    $postId
+                );
+            }
+        }
+        
         return ApiResponse::success($response, ['liked' => true]);
     }
 
@@ -115,6 +136,22 @@ class PostController
         }
 
         $comment = $this->comments->add($postId, $userId, $data['comment']);
+        
+        // Notify post owner
+        $post = $this->posts->findById($postId);
+        if ($post && (int) $post['user_id'] !== $userId) {
+            $commenterUser = $this->users->findById($userId);
+            $ownerToken = $this->fcmTokens->getToken((int) $post['user_id']);
+            if ($ownerToken && $commenterUser) {
+                $this->fcm->notifyPostComment(
+                    $ownerToken,
+                    $commenterUser['username'],
+                    $data['comment'],
+                    $postId
+                );
+            }
+        }
+        
         return ApiResponse::success($response, ['comment' => $comment], 201);
     }
 

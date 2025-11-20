@@ -10,12 +10,20 @@ use Respect\Validation\Exceptions\NestedValidationException;
 use Respect\Validation\Validator as v;
 use Socially\Helpers\MediaUploader;
 use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\FcmNotifier;
 use Socially\Repositories\MessageRepository;
+use Socially\Repositories\UserRepository;
+use Socially\Repositories\FcmTokenRepository;
 
 class MessageController
 {
-    public function __construct(private MessageRepository $messages, private MediaUploader $uploader)
-    {
+    public function __construct(
+        private MessageRepository $messages, 
+        private MediaUploader $uploader,
+        private FcmNotifier $fcm,
+        private UserRepository $users,
+        private FcmTokenRepository $fcmTokens
+    ) {
     }
 
     public function conversation(Request $request, Response $response, array $args): Response
@@ -68,6 +76,19 @@ class MessageController
             $mediaType,
             (bool) ($data['vanish_mode'] ?? false)
         );
+
+        // Send FCM notification to receiver
+        $senderUser = $this->users->findById($senderId);
+        $receiverToken = $this->fcmTokens->getToken($receiverId);
+        if ($receiverToken && $senderUser) {
+            $messageText = $data['message'] ?? 'Sent a media file';
+            $this->fcm->notifyNewMessage(
+                $receiverToken,
+                $senderUser['username'],
+                $messageText,
+                $message['id']
+            );
+        }
 
         return ApiResponse::success($response, ['message' => $message], 201);
     }

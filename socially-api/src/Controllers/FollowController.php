@@ -7,16 +7,20 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Respect\Validation\Exceptions\NestedValidationException;
 use Respect\Validation\Validator as v;
 use Socially\Helpers\Response as ApiResponse;
+use Socially\Helpers\FcmNotifier;
 use Socially\Repositories\FollowRepository;
 use Socially\Repositories\FollowRequestRepository;
 use Socially\Repositories\UserRepository;
+use Socially\Repositories\FcmTokenRepository;
 
 class FollowController
 {
     public function __construct(
         private FollowRepository $follows,
         private FollowRequestRepository $requests,
-        private UserRepository $users
+        private UserRepository $users,
+        private FcmNotifier $fcm,
+        private FcmTokenRepository $fcmTokens
     ) {
     }
 
@@ -46,6 +50,18 @@ class FollowController
         }
 
         $requestRecord = $this->requests->create($userId, $targetId);
+        
+        // Send FCM notification to target user
+        $requesterUser = $this->users->findById($userId);
+        $targetToken = $this->fcmTokens->getToken($targetId);
+        if ($targetToken && $requesterUser) {
+            $this->fcm->notifyFollowRequest(
+                $targetToken,
+                $requesterUser['username'],
+                $requestRecord['id']
+            );
+        }
+        
         return ApiResponse::success($response, ['request' => $requestRecord], 201);
     }
 

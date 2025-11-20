@@ -11,7 +11,10 @@ use Socially\Controllers\FollowController;
 use Socially\Controllers\MessageController;
 use Socially\Controllers\ProfileController;
 use Socially\Controllers\SearchController;
+use Socially\Controllers\PresenceController;
+use Socially\Controllers\FcmController;
 use Socially\Helpers\MediaUploader;
+use Socially\Helpers\FcmNotifier;
 use Socially\Repositories\SessionRepository;
 use Socially\Repositories\UserRepository;
 use Socially\Repositories\StoryRepository;
@@ -21,6 +24,8 @@ use Socially\Repositories\PostCommentRepository;
 use Socially\Repositories\FollowRepository;
 use Socially\Repositories\FollowRequestRepository;
 use Socially\Repositories\MessageRepository;
+use Socially\Repositories\PresenceRepository;
+use Socially\Repositories\FcmTokenRepository;
 
 $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->safeLoad();
@@ -49,11 +54,15 @@ $container->set(PostCommentRepository::class, fn ($c) => new PostCommentReposito
 $container->set(FollowRepository::class, fn ($c) => new FollowRepository($c->get('db')));
 $container->set(FollowRequestRepository::class, fn ($c) => new FollowRequestRepository($c->get('db')));
 $container->set(MessageRepository::class, fn ($c) => new MessageRepository($c->get('db')));
+$container->set(PresenceRepository::class, fn ($c) => new PresenceRepository($c->get('db')));
+$container->set(FcmTokenRepository::class, fn ($c) => new FcmTokenRepository($c->get('db')));
 
 $container->set(MediaUploader::class, fn () => new MediaUploader(
     $_ENV['MEDIA_PATH'],
     $_ENV['MEDIA_BASE_URL']
 ));
+
+$container->set(FcmNotifier::class, fn () => new FcmNotifier($_ENV['FCM_SERVER_KEY'] ?? ''));
 
 $container->set(AuthController::class, function ($c) {
     return new AuthController(
@@ -76,7 +85,10 @@ $container->set(PostController::class, function ($c) {
         $c->get(PostRepository::class),
         $c->get(PostLikeRepository::class),
         $c->get(PostCommentRepository::class),
-        $c->get(MediaUploader::class)
+        $c->get(MediaUploader::class),
+        $c->get(FcmNotifier::class),
+        $c->get(UserRepository::class),
+        $c->get(FcmTokenRepository::class)
     );
 });
 
@@ -84,14 +96,19 @@ $container->set(FollowController::class, function ($c) {
     return new FollowController(
         $c->get(FollowRepository::class),
         $c->get(FollowRequestRepository::class),
-        $c->get(UserRepository::class)
+        $c->get(UserRepository::class),
+        $c->get(FcmNotifier::class),
+        $c->get(FcmTokenRepository::class)
     );
 });
 
 $container->set(MessageController::class, function ($c) {
     return new MessageController(
         $c->get(MessageRepository::class),
-        $c->get(MediaUploader::class)
+        $c->get(MediaUploader::class),
+        $c->get(FcmNotifier::class),
+        $c->get(UserRepository::class),
+        $c->get(FcmTokenRepository::class)
     );
 });
 
@@ -108,4 +125,14 @@ $container->set(SearchController::class, function ($c) {
     );
 });
 
-$container->set('fcm', fn () => new Socially\Helpers\FcmNotifier($_ENV['FCM_SERVER_KEY']));
+$container->set(PresenceController::class, function ($c) {
+    return new PresenceController(
+        $c->get(PresenceRepository::class)
+    );
+});
+
+$container->set(FcmController::class, function ($c) {
+    return new FcmController(
+        $c->get(FcmTokenRepository::class)
+    );
+});
